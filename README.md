@@ -22,19 +22,33 @@ The procces to make this work for your own projects is quite long but worth it a
 - uplad the coad again
 - ENJOY YOUR CONTROLER :)
 
+## the electronics
+### the components
+- nodeMCU V1.0
+- LCD 2004A with I2C adapter
+- 4 mini pushdown switches
+- 1 10K variable resistor
+- some rando capacitors and resistors
+- 0.5mm solid core wire
+- A LITERAL FUCK TON OF PATIENCE TO SOLDER IT ALL TIGTH
+
+### the wiring
+i will probably make a diagram at some point, but im planing to do a youtube video first
+It realy not that hard, connect the nodeMCU to the LCD via I2C, then the buttons to the nodeMCU on pins D5, D6, D7 and D8 with pull down resistors, connect the variable resistor to the ADC, 3.3v and with a pull-down to ground.
+
 ## the enclosure
 the enclosure is 100% 3d printed with exception of some magnets so that it can stick to magnetic surfaces and some nylon screws and extensions that ussualy come with the LCD display
 you can get the design on [OnShape](https://cad.onshape.com/documents/03c0f5b84e5dc7ce18a5b986/w/59c2b69761292aa5b35bee0f/e/642c8b87b2996676210efcd2)
+The electronics come together inside the enclosure in a very specific way, if you solder everything outside the enclosure and then go to put it on you will have quite a rough time. most of the components are held together with a bunch of hot glue, hopes and prayers.
 
 ## BROKEN THINGS:
 - if your router gets disconected your local IP migth change breaking everything
 - the time about 50% of the time shows it's 3:08AM
 
 <br>
+
 [![forthebadge](https://forthebadge.com/images/badges/works-on-my-machine.svg)](https://forthebadge.com)
 
-<br>
 [![forthebadge](https://forthebadge.com/images/badges/powered-by-coffee.svg)](https://forthebadge.com)
 
-<br>
 [![forthebadge](https://forthebadge.com/images/badges/open-source.svg)](https://forthebadge.com)
