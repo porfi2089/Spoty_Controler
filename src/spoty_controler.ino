@@ -41,6 +41,14 @@ uint8_t endF[8] = {0x00,0x08,0x08,0x1B,0x08,0x08,0x00,0x00};
 uint8_t endL[8] = {0x00,0x02,0x0A,0x1E,0x0A,0x02,0x00,0x00};
 uint8_t point[8] = {0x00,0x00,0x0E,0x1F,0x0E,0x00,0x00,0x00};
 uint8_t starter[8] = {0x00,0x08,0x08,0x0F,0x08,0x08,0x00,0x00};
+
+IPAddress local_IP(192, 168, 1, 180);
+// Set your Gateway IP address
+IPAddress gateway(192, 168, 1, 1);
+
+IPAddress subnet(255, 255, 0, 0);
+IPAddress primaryDNS(8, 8, 8, 8);   //optional
+IPAddress secondaryDNS(8, 8, 4, 4); //optional
   
 LiquidCrystal_I2C lcd(0x3F,20,4);  
 
@@ -696,8 +704,13 @@ void setup(){
   lcd.home();
   LCDm.drawStart();
 
+
+
   lcd.setCursor(0, 3);
   lcd.print("connecting to WiFi");
+  if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
+    Serial.println("STA Failed to configure");
+  }
   WiFi.begin(WIFI_SSID, PASSWORD); // connect to wifi
   int attempt = 0;
   while (WiFi.status() != WL_CONNECTED) {
