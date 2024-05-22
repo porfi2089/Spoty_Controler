@@ -486,42 +486,14 @@ public:
     String refreshToken;
 };
 
-//web pages
-const char mainPage[] PROGMEM = R"=====(
-<HTML>
-    <HEAD>
-        <TITLE>My first web page</TITLE>
-    </HEAD>
-    <BODY>
-        <CENTER>
-            <B>Hello World.... </B>
-            <a href="https://accounts.spotify.com/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=user-modify-playback-state user-read-currently-playing user-read-playback-state user-library-modify user-library-read">Log in to spotify</a>
-        </CENTER>
-    </BODY>
-</HTML>
-)=====";
-
-const char errorPage[] PROGMEM = R"=====(
-<HTML>
-    <HEAD>
-        <TITLE>My first web page</TITLE>
-    </HEAD>
-    <BODY>
-        <CENTER>
-            <B>Hello World.... </B>
-            <a href="https://accounts.spotify.com/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=user-modify-playback-state user-read-currently-playing user-read-playback-state user-library-modify user-library-read">Log in to spotify</a>
-        </CENTER>
-    </BODY>
-</HTML>
-)=====";
 
 WiFiUDP ntpUDP;
 ESP8266WebServer server(80); //Server on port 80
 SpotConn spotifyConnection;
-NTPClient timeClient(ntpUDP, "ar.pool.ntp.org", -10800, 60000);
+NTPClient timeClient(ntpUDP, "ar.pool.ntp.org", -10800, 60000); // declares NTP client
 
 
-class LCDmanager {
+class LCDmanager { // the one responsable for managing all graphical intefrace
 public:
   LCDmanager(){};
 
@@ -530,29 +502,29 @@ public:
   String lastSong = "";
   bool scrolable;
 
-  void drawStart(){
+  void drawStart(){ // draws the start up page
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("WIRELESS CONTROLLER");
+    lcd.print("WIRELESS CONTROLLER"); // project name
     lcd.setCursor(0, 1);
-    lcd.print(String("version ") + String(codeVersion));
+    lcd.print(String("version ") + String(codeVersion)); // shows version
     lcd.setCursor(0, 2);
-    lcd.print("by: Manuel Rao");
+    lcd.print("by: Manuel Rao"); // shows author
   }
 
-  void drawSpotifyConection(){
+  void drawSpotifyConection(){ // draws the spotify setpu page
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print("Spotify Setup");
     lcd.setCursor(0, 1);
     lcd.print("go to:");
     lcd.setCursor(0, 2);
-    lcd.print("http://" + WiFi.localIP().toString() + "/");
+    lcd.print("http://" + WiFi.localIP().toString() + "/"); // shows the URI you need to connect to to auth
     lcd.setCursor(0, 3);
     lcd.print("To sync to spotify");
   }
 
-  void waitForDevice(){
+  void waitForDevice(){ // draws the waiting for device page
     lcd.clear();
     lcd.setCursor(15, 0);
     timeClient.update();
@@ -561,7 +533,7 @@ public:
     lcd.print("waiting for device");
   }
 
-  void drawMusic(){
+  void drawMusic(){ // draws the main music screen
     lcd.clear();
     lcd.setCursor(15, 0);
     timeClient.update();
@@ -577,9 +549,12 @@ public:
       }
       lastSong = spotifyConnection.currentSong.song;
     }
+    String displayName = spotifyConnection.currentSong.song + "-("+spotifyConnection.currentSong.artist+")";
     if(scrolable){
-      lcd.print(spotifyConnection.currentSong.song.substring(nameScroll, nameScroll+20));
-      if(nameScroll + 20 == nameLen){nameScroll = 0;}else{nameScroll++;}
+      lcd.print(displayName.substring(nameScroll, nameScroll+20));
+      int steps = int((millis()-LastUpdate)/1500);
+      if(nameScroll + 20 == nameLen){nameScroll = 0;}else if(nameScroll + 20 + steps <= nameLen){nameScroll += steps;}else{nameScroll++;}
+      LastUpdate = millis();
     }else{
       lcd.print(spotifyConnection.currentSong.song);
     }
@@ -618,7 +593,8 @@ public:
     lcd.print(" > "); //skip button
     spotifyConnection.currentSong.isLiked ? lcd.printByte(3) : lcd.printByte(4);
   }
-  
+
+  int LastUpdate = 0;
 };
 
 bool buttonStates[] = {1,1,1,1};
@@ -634,33 +610,65 @@ bool serverOn = true;
 
 LCDmanager LCDm;
 
-void handleRoot() {
+//web pages
+// HTML for main root page
+const char mainPage[] PROGMEM = R"=====(
+<HTML>
+    <HEAD>
+        <TITLE>My first web page</TITLE>
+    </HEAD>
+    <BODY>
+        <CENTER>
+            <B>Hello World.... </B>
+            <a href="https://accounts.spotify.com/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=user-modify-playback-state user-read-currently-playing user-read-playback-state user-library-modify user-library-read">Log in to spotify</a>
+        </CENTER>
+    </BODY>
+</HTML>
+)=====";
+
+// HTML for error page
+const char errorPage[] PROGMEM = R"=====(
+<HTML>
+    <HEAD>
+        <TITLE>My first web page</TITLE>
+    </HEAD>
+    <BODY>
+        <CENTER>
+            <B>Hello World.... </B>
+            <a href="https://accounts.spotify.com/authorize?response_type=code&client_id=%s&redirect_uri=%s&scope=user-modify-playback-state user-read-currently-playing user-read-playback-state user-library-modify user-library-read">Log in to spotify</a>
+        </CENTER>
+    </BODY>
+</HTML>
+)=====";
+
+void handleRoot() { // handless HTTP main server for spotify auth
     Serial.println("handling root");
     char page[500];
     sprintf(page,mainPage,CLIENT_ID,REDIRECT_URI);
     server.send(200, "text/html", String(page)+"\r\n"); //Send web page
 }
 
-void handleCallbackPage() {
+void handleCallbackPage() { // handless call back page but it can also act as root for auth
     if(!spotifyConnection.accessTokenSet){
         if (server.arg("code") == ""){     //Parameter not found
             char page[500];
             sprintf(page,errorPage,CLIENT_ID,REDIRECT_URI);
             server.send(200, "text/html", String(page)); //Send web page
         }else{     //Parameter found
-            if(spotifyConnection.getUserCode(server.arg("code"))){
+            if(spotifyConnection.getUserCode(server.arg("code"))){ // send auth complete web page
                 server.send(200,"text/html","Spotify setup complete Auth refresh in :"+String(spotifyConnection.tokenExpireTime));
             }else{
                 char page[500];
                 sprintf(page,errorPage,CLIENT_ID,REDIRECT_URI);
-                server.send(200, "text/html", String(page)); //Send web page
+                server.send(200, "text/html", String(page)); //Send error web page
             }
         }
     }else{
-        server.send(200,"text/html","Spotify setup complete");
+        server.send(200,"text/html","Spotify setup complete"); // send spotify setup already complete page
     }
 }
 
+// pin manager, its called whenever a button is pressed(DO NOT TOUCH UNLES YOU KNOW WHAT UR DOING)
 volatile int pinCalled;
 volatile bool call = false;
 void ICACHE_RAM_ATTR pinManager(){
@@ -688,11 +696,14 @@ void ICACHE_RAM_ATTR pinManager(){
     }
   }
 }
+
+
 void setup(){
   Serial.begin(115200);
 
   lcd.init();    // initialize the lcd                   
   lcd.backlight();
+  // load in the custom chars
   lcd.createChar(0, pause);
   lcd.createChar(1, play);
   lcd.createChar(2, starter);
@@ -744,11 +755,11 @@ void setup(){
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), pinManager, RISING);
   }
 
-  delay(500);
+  delay(250);
   lcd.setCursor(0, 3);
   lcd.print("Start sequence DONE ");
   delay(500);
-  LCDm.drawSpotifyConection();
+  LCDm.drawSpotifyConection(); // wait for spotify auth
 
 }
 
@@ -784,7 +795,7 @@ void loop(){
             spotifyConnection.skipForward();
             break;
         case 3:
-            spotifyConnection.toggleLiked(spotifyConnection.currentSong.Id);
+            spotifyConnection.toggleLiked(spotifyConnection.currentSong.Id); // need to change this to cofig menu
             break;
         default:
             break;
