@@ -490,7 +490,7 @@ public:
 WiFiUDP ntpUDP;
 ESP8266WebServer server(80); //Server on port 80
 SpotConn spotifyConnection;
-NTPClient timeClient(ntpUDP, "ar.pool.ntp.org", -10800, 60000); // declares NTP client
+NTPClient timeClient(ntpUDP, "ar.pool.ntp.org", -10800, 60000); // NTP client
 
 
 class LCDmanager { // the one responsable for managing all graphical intefrace
@@ -534,10 +534,13 @@ public:
   }
 
   void drawMusic(){ // draws the main music screen
+
     lcd.clear();
     lcd.setCursor(15, 0);
-    timeClient.update();
+    timeClient.update(); // shows the time
     lcd.print(timeClient.getFormattedTime().substring(0,5));
+
+    // shows song name
     lcd.setCursor(0,1);
     int nameLen = spotifyConnection.currentSong.song.length();
     if(lastSong != spotifyConnection.currentSong.song){
@@ -549,6 +552,8 @@ public:
       }
       lastSong = spotifyConnection.currentSong.song;
     }
+
+    //scrolling
     String displayName = spotifyConnection.currentSong.song + "-("+spotifyConnection.currentSong.artist+")";
     if(scrolable){
       lcd.print(displayName.substring(nameScroll, nameScroll+20));
@@ -558,6 +563,8 @@ public:
     }else{
       lcd.print(spotifyConnection.currentSong.song);
     }
+
+    //progress bar
     lcd.setCursor(0, 2);
     float progress = float(spotifyConnection.currentSongPositionMs)/float(spotifyConnection.currentSong.durationMs);
     Serial.println(spotifyConnection.currentSongPositionMs);
@@ -577,6 +584,8 @@ public:
     }
     lcd.print(bar);
     lcd.printByte(6);
+
+    // show progress time and total song length
     lcd.setCursor(0, 3);
     int progressMinsIn = floor(spotifyConnection.currentSongPositionMs/60000);
     String progressMins = String((progressMinsIn < 10) ? "0" + String(progressMinsIn) : String(progressMinsIn));
@@ -722,6 +731,7 @@ void setup(){
   if (!WiFi.config(local_IP, gateway, subnet, primaryDNS, secondaryDNS)) {
     Serial.println("STA Failed to configure");
   }
+  
   WiFi.begin(WIFI_SSID, PASSWORD); // connect to wifi
   int attempt = 0;
   while (WiFi.status() != WL_CONNECTED) {
