@@ -16,16 +16,15 @@
 #include <LiquidCrystal_I2C.h>
 
 // WIFI credentials
-#define WIFI_SSID "CALCALZON_2.5G"
-#define PASSWORD "Ser211@TeleCentro"
+char WIFI_SSID[] = "CALCALZON_2.5G"
+char PASSWORD[] = "Ser211@TeleCentro"
 
 // Spotify API credentials
 #define CLIENT_ID "7dbaacd4aa4d4f668e6782175ef4e4b4"
 #define CLIENT_SECRET "32ad905e011046e59976f91aaf5ba254"
 String REDIRECT_URI = "http://192.168.0.12/callback";
 
-#define codeVersion "1.1.2"
-
+#define codeVersion "1.2.0"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #define printByte(args)  write(args)
@@ -533,6 +532,12 @@ public:
     lcd.print("waiting for device");
   }
 
+  void showNets(int numNets, int selected){ // uncomplete
+
+    for(int i = 0; i < numNets; i++){
+        WiFi.SSID(i)
+    }
+  }
   void drawMusic(){ // draws the main music screen
 
     lcd.clear();
