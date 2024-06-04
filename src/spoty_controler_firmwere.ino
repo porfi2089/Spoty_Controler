@@ -11,6 +11,7 @@
 #include <WiFiClientSecureBearSSL.h>
 #include <WiFiUdp.h>
 #include <NTPClient.h>
+#include <WiFiNINA.h>
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -532,12 +533,34 @@ public:
     lcd.print("waiting for device");
   }
 
-  void showNets(int numNets, int selected){ // uncomplete
 
+  void showNets(int numNets, int selected){ // uncomplete, but it is supoused to show all abailabvle networks
+    
+    String IDs[numNets] = [];
     for(int i = 0; i < numNets; i++){
-        WiFi.SSID(i)
+        IDs[i] = WiFi.SSID(i)
     }
+
+    Serial.println(IDs);
+    
+    int showNum = int(selected/2);
+
+    if(numNets%2 != 0){
+        IDs[numNets+1] = "";
+    }
+
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Networks - " + String(numNets));
+    lcd.setCursor(0, 1);
+    lcd.print(String(((selected % 2) == 0)? "- " : "->") + IDs[showNum]);
+    lcd.setCursor(0, 2);
+    lcd.print(String(((selected % 2) != 0)? "- " : "->") + IDs[showNum+1]); 
+    lcd.setCursor(0, 3);
+    lcd.print("            < E > S"); 
   }
+    
+
   void drawMusic(){ // draws the main music screen
 
     lcd.clear();
@@ -711,6 +734,9 @@ void ICACHE_RAM_ATTR pinManager(){
   }
 }
 
+void manageWiFi(){ // manages all wifi connection setup to be able to connect to any network type
+
+}
 
 void setup(){
   Serial.begin(115200);
