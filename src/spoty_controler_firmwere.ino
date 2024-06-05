@@ -534,7 +534,7 @@ public:
   }
 
 
-  void showNets(int numNets, int selected){ // uncomplete, but it is supoused to show all abailabvle networks
+  void showNets(int numNets, int selected){ // it shows all networks
     
     String IDs[numNets] = [];
     for(int i = 0; i < numNets; i++){
@@ -551,15 +551,45 @@ public:
 
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print("Networks - " + String(numNets));
+    lcd.print("Networks - " + String(numNets)); // menu name and number of networks
     lcd.setCursor(0, 1);
-    lcd.print(String(((selected % 2) == 0)? "- " : "->") + IDs[showNum]);
+    lcd.print(String(((selected % 2) == 0)? "- " : "->") + IDs[showNum]); // shows first network
     lcd.setCursor(0, 2);
-    lcd.print(String(((selected % 2) != 0)? "- " : "->") + IDs[showNum+1]); 
+    lcd.print(String(((selected % 2) != 0)? "- " : "->") + IDs[showNum+1]); //shows second network
     lcd.setCursor(0, 3);
-    lcd.print("            < E > S"); 
+    lcd.print("            < E > S"); // shows action bar
   }
     
+  void drawKeyboard(String menuText, String writenText, char leter, int selected, bool writing){
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("- " + menuText);
+    String writeLine = "";
+    scrolable = (writenText.length() >= 18) ? true : false;
+    if scrolable{ // prepares the text to be shown 
+        if (scrolable){
+            writeLine = writenText.substring(selected-18, selected) + leter;
+        } else if(writing){
+            writeLine = writenText.substring(0, selected) + leter + writenText.substring(selected+1, 20)
+        }
+    }
+    lcd.setCursor(0, 1);
+    lcd.print(writeLine); // writes the actual text
+    lcd.setCursor(0, 2);
+    String selector = (writing) ? ">-<" : "<->"; // select which cursor to use
+    if(selected >= 18){ // print blank spaces to place the cursor in the apropiate space
+        for(int i = 0; i<17; i++){
+            lcd.print(" ");
+        }
+    } else {
+        for(int i = 0; i<selected-1; i++){
+            lcd.print(" ");
+        }
+    }
+    lcd.print(selector);
+    lcd.setCursor(0, 3);
+    lcd.print(String((writing)? "            < S > U" : "            < W > S")); //menu action bar
+  }
 
   void drawMusic(){ // draws the main music screen
 
@@ -734,8 +764,33 @@ void ICACHE_RAM_ATTR pinManager(){
   }
 }
 
-void manageWiFi(){ // manages all wifi connection setup to be able to connect to any network type
-
+void manageWifiConnection(){ // manages all wifi connection setup to be able to connect to any network type 
+    int numNets = WiFi.scanNetworks();
+    int selected = 0;
+    bool selectedSet = false;
+    bool q = false;
+    while(!selectedSet and !q){
+        if(call){
+            switch (pinCalled){
+                case 0:
+                    selected = (selected == 0) ? numNets - 1 : selected - 1;
+                    break;
+                case 1:
+                    selectedSet = true;
+                    break;
+                case 2:
+                    selected = (selected == numNets - 1) ? 0 : selected + 1
+                    break;
+                case 3:
+                    q = true;
+                    break;
+                default:
+                    break;
+            }
+            call = false;
+        }
+    }
+        
 }
 
 void setup(){

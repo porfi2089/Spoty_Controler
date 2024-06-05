@@ -42,8 +42,7 @@ you can get the design on [OnShape](https://cad.onshape.com/documents/03c0f5b84e
 The electronics come together inside the enclosure in a very specific way, if you solder everything outside the enclosure and then go to put it on you will have quite a rough time. most of the components are held together with a bunch of hot glue, hopes and prayers.
 
 ## BROKEN THINGS:
-- if your router gets disconected your local IP migth change breaking everything
-- the time about 50% of the time shows it's 3:08AM
+just look at the issues tab
 
 <br>
 
