@@ -12,6 +12,7 @@
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 #include <WiFiNINA.h>
+#include <time.h>
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -596,7 +597,8 @@ public:
     lcd.clear();
     lcd.setCursor(15, 0);
     timeClient.update(); // shows the time
-    lcd.print(timeClient.getFormattedTime().substring(0,5));
+    String ti = Str((hour() < 10)? "0"+Str(hour()) : hour())+":"+Str((minute() < 10)? "0"+Str(minute()) : minute())
+    lcd.print();
 
     // shows song name
     lcd.setCursor(0,1);
@@ -765,32 +767,49 @@ void ICACHE_RAM_ATTR pinManager(){
 }
 
 void manageWifiConnection(){ // manages all wifi connection setup to be able to connect to any network type 
+    //wifi selection mode
     int numNets = WiFi.scanNetworks();
     int selected = 0;
     bool selectedSet = false;
     bool q = false;
-    while(!selectedSet and !q){
-        if(call){
-            switch (pinCalled){
-                case 0:
-                    selected = (selected == 0) ? numNets - 1 : selected - 1;
-                    break;
-                case 1:
-                    selectedSet = true;
-                    break;
-                case 2:
-                    selected = (selected == numNets - 1) ? 0 : selected + 1
-                    break;
-                case 3:
-                    q = true;
-                    break;
-                default:
-                    break;
+    bool f = false;
+    while(!f){
+        while(!selectedSet and !q){
+            if(call){
+                switch (pinCalled){
+                    case 0:
+                        selected = (selected == 0) ? numNets - 1 : selected - 1;
+                        break;
+                    case 1:
+                        selectedSet = true;
+                        break;
+                    case 2:
+                        selected = (selected == numNets - 1) ? 0 : selected + 1;
+                        break;
+                    case 3:
+                        q = true;
+                        break;
+                    default:
+                        break;
+                }
+                call = false;
             }
-            call = false;
         }
     }
         
+}
+
+unsigned long lastNTPUpdate = 0;
+const unsigned long NTP_UPDATE_INTERVAL = 600000; // 10 minutes in milliseconds
+
+void updateRTCTime() {
+  // Update the RTC with the NTP time
+  timeClient.update();
+  setTime(timeClient.getEpochTime());
+
+  Serial.print("NTP Time: ");
+  printTime();
+  Serial.println();
 }
 
 void setup(){
@@ -820,6 +839,7 @@ void setup(){
   
   WiFi.begin(WIFI_SSID, PASSWORD); // connect to wifi
   int attempt = 0;
+
   while (WiFi.status() != WL_CONNECTED) {
       delay(500);
       Serial.println("Conecting to WiFi...");
@@ -836,8 +856,9 @@ void setup(){
   REDIRECT_URI = "http://" + WiFi.localIP().toString() + "/callback";
   delay(500);
   timeClient.begin(); // initialize the time client
+  updateRTCTime()
   lcd.setCursor(0, 3);
-  lcd.print("connected to NTPC   ");
+  lcd.print("connected to NTP    ");
 
   server.on("/", handleRoot);      //Which routine to handle at root location
   server.on("/callback", handleCallbackPage);      //Which routine to handle at root location
@@ -861,6 +882,11 @@ void setup(){
 
 int mode = 0;
 void loop(){
+  if (millis() - lastNTPUpdate >= NTP_UPDATE_INTERVAL) {
+    updateRTCTime();
+    lastNTPUpdate = millis();
+  }
+
   if(spotifyConnection.accessTokenSet){
     if(serverOn){
         server.close();
