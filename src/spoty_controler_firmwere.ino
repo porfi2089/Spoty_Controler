@@ -12,7 +12,7 @@
 #include <WiFiUdp.h>
 #include <NTPClient.h>
 #include <WiFiNINA.h>
-#include <time.h>
+#include <Time.h>
 
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
@@ -27,6 +27,7 @@ char PASSWORD[] = "Ser211@TeleCentro"
 String REDIRECT_URI = "http://192.168.0.12/callback";
 
 #define codeVersion "1.2.0"
+#define EEPROM_SIZE 4095
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #define printByte(args)  write(args)
@@ -493,6 +494,26 @@ ESP8266WebServer server(80); //Server on port 80
 SpotConn spotifyConnection;
 NTPClient timeClient(ntpUDP, "ar.pool.ntp.org", -10800, 60000); // NTP client
 
+String printEncryptionType(int thisType) {
+  // read the encryption type and print out the name:
+  switch (thisType) {
+    case ENC_TYPE_WEP:
+      return("WEP");
+      break;
+    case ENC_TYPE_TKIP:
+      return("WPA");
+      break;
+    case ENC_TYPE_CCMP:
+      return("WPA2");
+      break;
+    case ENC_TYPE_NONE:
+      return("None");
+      break;
+    case ENC_TYPE_AUTO:
+      return("Auto");
+      break;
+  }
+}
 
 class LCDmanager { // the one responsable for managing all graphical intefrace
 public:
@@ -560,7 +581,19 @@ public:
     lcd.setCursor(0, 3);
     lcd.print("            < E > S"); // shows action bar
   }
-    
+
+  void netMenu(int selected){ // individual network menu
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(WiFi.SSID(selected)); // Net name
+    lcd.setCursor(0, 1);
+    lcd.print(printEncryptionType(WiFi.encryptionType(selected))); // 
+    lcd.setCursor(0, 2);
+    lcd.print(String(((selected % 2) != 0)? "- " : "->") + IDs[showNum+1]); //shows second network
+    lcd.setCursor(0, 3);
+    lcd.print("            < E > S"); // shows action bar
+  }
+
   void drawKeyboard(String menuText, String writenText, char leter, int selected, bool writing){
     lcd.clear();
     lcd.setCursor(0, 0);
@@ -766,25 +799,28 @@ void ICACHE_RAM_ATTR pinManager(){
   }
 }
 
-void manageWifiConnection(){ // manages all wifi connection setup to be able to connect to any network type 
-    //wifi selection mode
+void netMenu(){
     int numNets = WiFi.scanNetworks();
     int selected = 0;
     bool selectedSet = false;
     bool q = false;
     bool f = false;
+    LCDm.showNets(numNets, selected);
     while(!f){
+        q = true
         while(!selectedSet and !q){
             if(call){
                 switch (pinCalled){
                     case 0:
                         selected = (selected == 0) ? numNets - 1 : selected - 1;
+                        LCDm.showNets(numNets, selected);
                         break;
                     case 1:
                         selectedSet = true;
                         break;
                     case 2:
                         selected = (selected == numNets - 1) ? 0 : selected + 1;
+                        LCDm.showNets(numNets, selected);
                         break;
                     case 3:
                         q = true;
@@ -795,12 +831,39 @@ void manageWifiConnection(){ // manages all wifi connection setup to be able to 
                 call = false;
             }
         }
+
+        while(selectedSet){
+            if(call){
+                switch (pinCalled){
+                    case 0:
+                        
+                        break;
+                    case 1:
+                        
+                        break;
+                    case 2:
+                        
+                        break;
+                    case 3:
+                        selectedSet = false;
+                        break;
+                    default:
+                        break;
+                }
+                call = false;
+            }
+        }
     }
-        
+}
+void manageWifiConnection(){ // manages all wifi connection setup to be able to connect to any network type 
+    //wifi selection mode
+    netMenu();
+    
+
 }
 
 unsigned long lastNTPUpdate = 0;
-const unsigned long NTP_UPDATE_INTERVAL = 600000; // 10 minutes in milliseconds
+const unsigned long NTP_UPDATE_INTERVAL = 600000; // 10 minutes 
 
 void updateRTCTime() {
   // Update the RTC with the NTP time
@@ -860,38 +923,42 @@ void setup(){
   lcd.setCursor(0, 3);
   lcd.print("connected to NTP    ");
 
-  server.on("/", handleRoot);      //Which routine to handle at root location
+  server.on("/", handleRoot);                      //Which routine to handle at root location
   server.on("/callback", handleCallbackPage);      //Which routine to handle at root location
-  server.begin();                  //Start server
-  Serial.println("HTTP server started");
+  server.begin();                                  //Start server
+  Serial.println("HTTP server started");           // loging
   lcd.setCursor(0, 3);
   lcd.print("HTTPS server Started");
 
-  for(int i = 0; i < 4; i ++){
+  for(int i = 0; i < 4; i ++){ // set pin modes and attach interrupts
     pinMode(buttonPins[i], INPUT);
     attachInterrupt(digitalPinToInterrupt(buttonPins[i]), pinManager, RISING);
   }
 
   delay(250);
   lcd.setCursor(0, 3);
-  lcd.print("Start sequence DONE ");
+  lcd.print("Start sequence DONE "); // finish message
   delay(500);
   LCDm.drawSpotifyConection(); // wait for spotify auth
 
 }
 
 int mode = 0;
-void loop(){
-  if (millis() - lastNTPUpdate >= NTP_UPDATE_INTERVAL) {
+
+void loop(){  // main loop
+
+  if (millis() - lastNTPUpdate >= NTP_UPDATE_INTERVAL) { // update RTC time every X minutes
     updateRTCTime();
     lastNTPUpdate = millis();
   }
 
   if(spotifyConnection.accessTokenSet){
-    if(serverOn){
+    if(serverOn){ // close server 
         server.close();
         serverOn = false;
     }
+
+    // check if spotify auth token needs to be refreshed
     if((millis() - spotifyConnection.tokenStartTime)/1000 > spotifyConnection.tokenExpireTime){
         Serial.println("refreshing token");
         if(spotifyConnection.refreshAuth()){
@@ -899,13 +966,13 @@ void loop(){
         }
     }
 
-    if(spotifyConnection.getTrackInfo()){
+    if(spotifyConnection.getTrackInfo()){ // gets current playing from spotify
       LCDm.drawMusic();
-      Serial.println("drawn");
-    }else if(spotifyConnection.currentSong.song == NULL){
-      LCDm.waitForDevice();
+    }else if(spotifyConnection.currentSong.song == NULL){ // nothing playing
+      LCDm.waitForDevice(); 
     }
-    if(call){
+
+    if(call){ // manage user interactions
       switch (pinCalled){
         case 0:
             spotifyConnection.skipBack();
