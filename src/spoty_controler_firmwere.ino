@@ -582,16 +582,89 @@ public:
     lcd.print("            < E > S"); // shows action bar
   }
 
-  void netMenu(int selected){ // individual network menu
+  void netMenu(int selected, int mode){ // individual network menu
     lcd.clear();
     lcd.setCursor(0, 0);
     lcd.print(WiFi.SSID(selected)); // Net name
     lcd.setCursor(0, 1);
-    lcd.print(printEncryptionType(WiFi.encryptionType(selected))); // 
+    String enc = printEncryptionType(WiFi.encryptionType(selected))
+    lcd.print("Encryption: " + enc); // encryption type
     lcd.setCursor(0, 2);
-    lcd.print(String(((selected % 2) != 0)? "- " : "->") + IDs[showNum+1]); //shows second network
+    // decision tree for action menu
+    switch (enc){
+
+    case "None":
+        switch (mode){
+        case 0:
+            lcd.print("connect"); // connect
+            break;
+        case 1:
+            lcd.print("RSSI" + str(WiFi.RSSI()))
+            break;
+        default:
+            break;}
+        break;
+    
+    case "WEP":
+        switch (mode){
+        case 0:
+            lcd.print("connect"); // connect
+            break;
+        case 1:
+            lcd.print("RSSI" + str(WiFi.RSSI()));
+            break;
+        case 2:
+            lcd.print("Key Index: " /*need to implement the actual wifi pass storage*/);
+            break;
+        case 3: 
+            lcd.print("Password");
+            break;
+        default:
+            break;}
+        break;
+    case "WPA":
+        switch (mode){
+        case 0:
+            lcd.print("connect"); // connect
+            break;
+        case 1:
+            lcd.print("RSSI" + str(WiFi.RSSI()))
+            break;
+        case 2:
+            lcd.print("password");
+            break;
+        default:
+            break;}
+    case "WPA2":
+        switch (mode){
+        case 0:
+            lcd.print("connect"); // connect
+            break;
+        case 1:
+            lcd.print("RSSI" + str(WiFi.RSSI())) // signal strength
+            break;
+        case 2:
+            lcd.print("password"); 
+        default:
+            break;}
+            
+    case "auto":
+        switch (mode){
+        case 0:
+            lcd.print("connect"); // connect
+            break;
+        case 1:
+            lcd.print("RSSI" + str(WiFi.RSSI())) // signal strength
+            break;
+        case 2:
+            lcd.print("password"); 
+        default:
+            break;}
+    default:
+        break;
+    }
     lcd.setCursor(0, 3);
-    lcd.print("            < E > S"); // shows action bar
+    lcd.print("            < E > Q"); // shows action bar
   }
 
   void drawKeyboard(String menuText, String writenText, char leter, int selected, bool writing){
@@ -817,6 +890,7 @@ void netMenu(){
                         break;
                     case 1:
                         selectedSet = true;
+                        LCDm.netMenu(selected);
                         break;
                     case 2:
                         selected = (selected == numNets - 1) ? 0 : selected + 1;
